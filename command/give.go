@@ -25,31 +25,24 @@ import (
 
 const cmdGive lsf.CommandCode = "give"
 
-type giveOptionsSpec struct {
-	n UintOptionSpec
-}
-
+var giveOptions0 = struct{ n uint }{n: 3}
 var Give *lsf.Command
-var giveOptions *giveOptionsSpec
 
 func init() {
 	Give = &lsf.Command{
 		Name:        cmdGive,
 		About:       "Ask and you shall receive!",
-		Init:        nil_CommandInitFn,
 		Run:         runGive,
 		Flag:        FlagSet(cmdGive),
 		Initializer: true,
 	}
-	giveOptions = &giveOptionsSpec{
-		n: NewUintFlag(Give.Flag, "me", "home", uint(3), "how many", false),
-	}
+	Give.Flag.UintVar(&giveOptions0.n, "me", giveOptions0.n, "how many")
 }
 
 func runGive(env *lsf.Environment, args ...string) (err error) {
 	defer panics.Recover(&err)
 
-	for n := 0; n < int(*giveOptions.n.value); n++ {
+	for n := 0; n < int(giveOptions0.n); n++ {
 		log.Printf("h%c gs\n", rune('\u2661'))
 	}
 	return

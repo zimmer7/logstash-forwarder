@@ -94,11 +94,15 @@ func main() {
 		usageThenExit()
 	}
 
-	e := lsf.Run(nil, cmd, args[1:]...)
-	if e != nil {
-		onError(e, e_command_run)
+	if e := lsf.Run(nil, cmd, args[1:]...); e != nil {
+		switch {
+		case lsf.ERR.Usage.Matches(e):
+			/* ignore -- already handled by flagSet */
+		default:
+			log.Println("DEBUG: lsf.Run returned error")
+			onError(e, e_command_run)
+		}
 	}
-
 	return
 }
 

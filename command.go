@@ -89,7 +89,10 @@ func Run(env *Environment, cmd *Command, args ...string) (err error) {
 		}()
 	}
 
-	cmd.Flag.Parse(args)
+	e := cmd.Flag.Parse(args)
+	if e != nil {
+		return ERR.Usage(e.Error())
+	}
 	commandArgs := cmd.Flag.Args()
 
 	if cmd.IsActive {
