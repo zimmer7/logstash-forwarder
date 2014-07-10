@@ -18,45 +18,36 @@
 package command
 
 import (
+	"github.com/elasticsearch/kriterium/flags"
 	"github.com/elasticsearch/kriterium/panics"
 	"lsf"
 )
 
 const removeStreamCmdCode lsf.CommandCode = "stream-remove"
 
-type removeStreamOptionsSpec struct {
-	global BoolOptionSpec
-	id     StringOptionSpec
-}
-
 var removeStream *lsf.Command
-var removeStreamOptions *removeStreamOptionsSpec
+var removeStreamOption *flags.StringOption
 
 func init() {
 
+	flagset := FlagSet(removeStreamCmdCode)
 	removeStream = &lsf.Command{
 		Name:  removeStreamCmdCode,
 		About: "Remove a new log stream",
-		Init:  verifyRemoveStreamRequiredOpts,
+		Init:  initRemoveStream,
 		Run:   runRemoveStream,
-		Flag:  FlagSet(removeStreamCmdCode),
+		Flag:  flagset,
 	}
-	removeStreamOptions = &removeStreamOptionsSpec{
-		global: NewBoolFlag(removeStream.Flag, "G", "global", false, "global scope operation", false),
-		id:     NewStringFlag(removeStream.Flag, "s", "stream-id", "", "unique identifier for stream", true),
-	}
+	removeStreamOption = flags.NewStringOption(flagset, "s", "stream-id", "", "unique identifier for stream", true)
 }
 
-func verifyRemoveStreamRequiredOpts(env *lsf.Environment, args ...string) error {
-	if e := verifyRequiredOption(removeStreamOptions.id); e != nil {
-		return e
-	}
-	return nil
+func initRemoveStream(env *lsf.Environment, args ...string) (err error) {
+	return flags.VerifyRequiredOption(removeStreamOption)
 }
 
 func runRemoveStream(env *lsf.Environment, args ...string) (err error) {
 	panics.Recover(&err)
 
-	id := *removeStreamOptions.id.value
+	id := removeStreamOption.Get()
 	return env.RemoveLogStream(id)
 }

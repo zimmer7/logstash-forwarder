@@ -18,34 +18,64 @@
 package command
 
 import (
+	"github.com/elasticsearch/kriterium/errors"
+	"github.com/elasticsearch/kriterium/flags"
 	"github.com/elasticsearch/kriterium/panics"
 	"lsf"
+	"lsf/schema"
 )
 
 const addStreamCmdCode lsf.CommandCode = "stream-add"
 
 var addStream *lsf.Command
-var addStreamOptions *editStreamOptionsSpec
+var addStreamOptions *editStreamOptions
 
 func init() {
 
+	flagset := FlagSet(addStreamCmdCode)
 	addStream = &lsf.Command{
 		Name:  addStreamCmdCode,
 		About: "Add a new log stream",
-		Init:  _verifyEditStreamRequiredOpts,
+		Init:  initAddStream,
 		Run:   runAddStream,
-		Flag:  FlagSet(addStreamCmdCode),
+		Flag:  flagset,
 	}
-	addStreamOptions = initEditStreamOptionsSpec(addStream.Flag)
+	addStreamOptions = &editStreamOptions{
+		Verbose: flags.NewBoolOption(flagset, "v", "verbose", false, "be verbose in list", false),
+		Global:  flags.NewBoolOption(flagset, "G", "global", false, "global scope flag for command", false),
+		Id:      flags.NewStringOption(flagset, "s", "stream-id", "", "unique identifier for stream", true),
+		Path:    flags.NewStringOption(flagset, "p", "path", "", "path to log files", true),
+		Mode:    flags.NewStringOption(flagset, "m", "journal-mode", "", "stream journaling mode (rotation|rollover)", true),
+		Pattern: flags.NewStringOption(flagset, "n", "name-pattern", "", "naming pattern of journaled log files", true),
+	}
+}
+
+func initAddStream(env *lsf.Environment, args ...string) (err error) {
+	e := flags.UsageVerify(addStreamOptions)
+	if e != nil {
+		return e
+	}
+
+	mode := addStreamOptions.Mode.Get()
+	switch schema.ToJournalModel(mode) {
+	case schema.JournalModel.Rotation, schema.JournalModel.Rollover:
+	default:
+		println("HERE")
+		return errors.Usage("stream-add", "option", "option mode must be one of {rollover, rotation}")
+	}
+	return
 }
 
 func runAddStream(env *lsf.Environment, args ...string) (err error) {
 	defer panics.Recover(&err)
 
-	id := *addStreamOptions.id.value
-	pattern := *addStreamOptions.pattern.value
-	journalMode := *addStreamOptions.mode.value
-	basepath := *addStreamOptions.path.value
+	e := flags.UsageVerify(addStreamOptions)
+	panics.OnError(e)
+
+	id := addStreamOptions.Id.Get()
+	pattern := addStreamOptions.Pattern.Get()
+	journalMode := addStreamOptions.Mode.Get()
+	basepath := addStreamOptions.Path.Get()
 	fields := make(map[string]string) // TODO: fields needs a solution
 
 	return env.AddLogStream(id, basepath, pattern, journalMode, fields)

@@ -18,6 +18,7 @@
 package command
 
 import (
+	"github.com/elasticsearch/kriterium/flags"
 	"github.com/elasticsearch/kriterium/panics"
 	"lsf"
 	"lsf/schema"
@@ -26,48 +27,53 @@ import (
 const updateStreamCmdCode lsf.CommandCode = "stream-update"
 
 var updateStream *lsf.Command
-var updateStreamOptions *editStreamOptionsSpec
+var updateStreamOptions *editStreamOptions
 
 func init() {
 
+	flagset := FlagSet(updateStreamCmdCode)
 	updateStream = &lsf.Command{
 		Name:  updateStreamCmdCode,
 		About: "Update a new log stream",
-		Init:  verifyUpdateStreamRequiredOpts,
+		Init:  initUpdateStream,
 		Run:   runUpdateStream,
-		Flag:  FlagSet(updateStreamCmdCode),
+		Flag:  flagset,
 	}
-	updateStreamOptions = initEditStreamOptionsSpec(updateStream.Flag)
+	updateStreamOptions = &editStreamOptions{
+		Verbose: flags.NewBoolOption(flagset, "v", "verbose", false, "be verbose in list", false),
+		Global:  flags.NewBoolOption(flagset, "G", "global", false, "global scope flag for command", false),
+		Id:      flags.NewStringOption(flagset, "s", "stream-id", "", "unique identifier for stream", true),
+		Path:    flags.NewStringOption(flagset, "p", "path", "", "path to log files", false),
+		Mode:    flags.NewStringOption(flagset, "m", "journal-mode", "", "stream journaling mode (rotation|rollover)", false),
+		Pattern: flags.NewStringOption(flagset, "n", "name-pattern", "", "naming pattern of journaled log files", false),
+	}
 }
 
-func verifyUpdateStreamRequiredOpts(env *lsf.Environment, args ...string) error {
-	if e := verifyRequiredOption(updateStreamOptions.id); e != nil {
-		return e
-	}
-	return nil
+func initUpdateStream(env *lsf.Environment, args ...string) (err error) {
+	return flags.UsageVerify(updateStreamOptions)
 }
 
 func runUpdateStream(env *lsf.Environment, args ...string) (err error) {
 	defer panics.Recover(&err)
 
-	id := *updateStreamOptions.id.value
+	id := updateStreamOptions.Id.Get()
 	updates := make(map[string][]byte)
 
 	// update stream config document
-	var option interface{}
-	option = updateStreamOptions.pattern
-	if OptionProvided(option) {
-		v := []byte(string(*updateStreamOptions.pattern.value))
+	var option flags.StringOption
+	option = *updateStreamOptions.Pattern
+	if option.Provided() {
+		v := []byte(option.Get())
 		updates[schema.LogStreamElem.Pattern] = v
 	}
-	option = updateStreamOptions.path
-	if OptionProvided(option) {
-		v := []byte(string(*updateStreamOptions.path.value))
+	option = *updateStreamOptions.Path
+	if option.Provided() {
+		v := []byte(option.Get())
 		updates[schema.LogStreamElem.BasePath] = v
 	}
-	option = updateStreamOptions.mode
-	if OptionProvided(option) {
-		v := []byte(schema.ToJournalModel(*updateStreamOptions.mode.value))
+	option = *updateStreamOptions.Mode
+	if option.Provided() {
+		v := []byte(option.Get())
 		updates[schema.LogStreamElem.JournalModel] = v
 	}
 
