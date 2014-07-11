@@ -510,7 +510,7 @@ func (env *Environment) UpdateSystemDocument(opcode system.OpCode, id, docId, me
 		return e
 	}
 	if !ok {
-		return ERR.OpFailure("updated failed:", docId)
+		return ERR.LsfOpFailure("updated failed:", docId)
 	}
 
 	return nil
@@ -536,7 +536,7 @@ func (env *Environment) RemoveSystemDocument(opcode system.OpCode, id, docId, me
 		return e
 	}
 	if !ok {
-		return ERR.OpFailure("updated failed:", docId)
+		return ERR.LsfOpFailure("updated failed:", docId)
 	}
 
 	// remove the stream directory from the lsf environment
