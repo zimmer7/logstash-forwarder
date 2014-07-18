@@ -15,44 +15,40 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package command
+package remote
 
 import (
+	"log"
 	"lsf"
+	"lsf/command"
 )
 
-const cmd_harvest lsf.CommandCode = "harvest"
+var Command *command.Command
 
-type harvestOptionsSpec struct {
-	path   StringOptionSpec
-	stream StringOptionSpec
-}
-
-var Harvest *lsf.Command
-var harvestOptions *harvestOptionsSpec
+// common to remote -update -add.
+var option = struct {
+	Id   string `code:r long:remote-id   about:"remote portal unique identifier"`
+	Host string `code:h long:host-name   about:"remote portal host's name"`
+	Port uint16 `code:p long:port-number about:"remote portal host's port number"`
+}{}
 
 func init() {
-
-	Harvest = &lsf.Command{
-		Name: cmd_harvest,
-		Run:  runHarvest,
-		Flag: FlagSet(cmd_harvest),
+	Command = &command.Command{
+		Name:        "remote",
+		Run:         run,
+		SubCommands: []*command.Command{list, add, remove, update},
 	}
-
-	harvestOptions = &harvestOptionsSpec{
-		path:   NewStringOptionSpec("p", "path", ".", "path to log-stream files", false),
-		stream: NewStringOptionSpec("s", "stream", "", "the log-stream identifier", false),
-	}
-	harvestOptions.path.defineFlag(Harvest.Flag)
-	harvestOptions.stream.defineFlag(Harvest.Flag)
 }
 
-func runHarvest(env *lsf.Environment, args ...string) error {
-	/*
-		prospecter.GoHarvest(in, out, err, stream, path,
-	*/
-	//	env.Vars["some.Key()"]
+func run(env *lsf.Environment) (err error) {
 
-	panic("command.harvest() not impelemented!")
+	//	Command.DebugCommand()
+	return command.RunSubCommand(Command, list, env)
+}
 
+// temp debug remote.option
+func debugOptions() {
+	log.Printf("id?      %s\n", option.Id)
+	log.Printf("host?    %s\n", option.Host)
+	log.Printf("portnum? %s\n", option.Port)
 }

@@ -15,35 +15,37 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package command
+package remote
 
 import (
 	"github.com/elasticsearch/kriterium/panics"
 	"log"
 	"lsf"
+	"lsf/command"
 )
 
-const cmdGive lsf.CommandCode = "give"
-
-var giveOptions0 = struct{ n uint }{n: 3}
-var Give *lsf.Command
+var remove *command.Command
+var removeOption = struct {
+	Id string `code:s long:remote-id about:"remote id"`
+}{}
 
 func init() {
-	Give = &lsf.Command{
-		Name:        cmdGive,
-		About:       "Ask and you shall receive!",
-		Run:         runGive,
-		Flag:        FlagSet(cmdGive),
-		Initializer: true,
+	remove = &command.Command{
+		Name:   "remove",
+		Run:    runRemove,
+		Option: &removeOption,
 	}
-	Give.Flag.UintVar(&giveOptions0.n, "me", giveOptions0.n, "how many")
 }
 
-func runGive(env *lsf.Environment, args ...string) (err error) {
-	defer panics.Recover(&err)
+func runRemove(env *lsf.Environment) (err error) {
+	panics.Recover(&err)
 
-	for n := 0; n < int(giveOptions0.n); n++ {
-		log.Printf("h%c gs\n", rune('\u2661'))
+	command.AssertStringProvided("remote-id", removeOption.Id, "")
+	if e := env.RemoveRemotePort(removeOption.Id); e != nil {
+		return e
+	}
+	if remove.Verbose() {
+		log.Printf("Removed remote portal %q\n", removeOption.Id)
 	}
 	return
 }

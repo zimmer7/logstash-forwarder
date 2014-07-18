@@ -15,52 +15,40 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package command
+package stream
 
 import (
 	"github.com/elasticsearch/kriterium/panics"
 	"log"
 	"lsf"
+	"lsf/command"
 	"lsf/schema"
 )
 
-const listRemoteCmdCOde lsf.CommandCode = "remote-list"
-
-type listRemoteOptionsSpec struct {
-	global  BoolOptionSpec
-	verbose BoolOptionSpec
-}
-
-var listRemote *lsf.Command
-var listRemoteOptions *listRemoteOptionsSpec
+var list *command.Command
+var listOption = struct {
+	Id   string `code:s long:stream-id about:"stream id"`
+	Info bool   `code:i long:info about:"show full stream info"`
+}{}
 
 func init() {
-
-	listRemote = &lsf.Command{
-		Name:  listRemoteCmdCOde,
-		About: "List Remotes defined ",
-		Run:   runListRemote,
-		Flag:  FlagSet(listRemoteCmdCOde),
-	}
-	listRemoteOptions = &listRemoteOptionsSpec{
-		global:  NewBoolFlag(listRemote.Flag, "G", "global", false, "global scope flag for command", false),
-		verbose: NewBoolFlag(listRemote.Flag, "v", "verbose", false, "detailed output", false),
+	list = &command.Command{
+		Name:   "list",
+		Run:    runList,
+		Option: &listOption,
 	}
 }
 
-func runListRemote(env *lsf.Environment, args ...string) (err error) {
+func runList(env *lsf.Environment) (err error) {
 	defer panics.Recover(&err)
 
-	verbose := *listRemoteOptions.verbose.value
-	v, found := env.Get(remoteOptionVerbose)
-	if found {
-		verbose = verbose || v.(bool)
-	}
-
-	digests := env.GetResourceDigests("remote", verbose, schema.PortDigest)
+	digests := env.GetResourceDigests("stream", listOption.Info, schema.LogStreamDigest)
 	for _, digest := range digests {
 		log.Println(digest)
 	}
 
-	return nil
+	if list.Verbose() && len(digests) == 0 {
+		log.Printf("There are no streams defined in %s\n", list.Wd())
+	}
+	return
 }

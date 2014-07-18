@@ -15,41 +15,36 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package command
+package give
 
 import (
 	"github.com/elasticsearch/kriterium/panics"
+	"log"
 	"lsf"
+	"lsf/command"
 )
 
-const removeRemoteCmdCode lsf.CommandCode = "remote-remove"
+var Command *command.Command
 
-type removeRemoteOptionsSpec struct {
-	global BoolOptionSpec
-	id     StringOptionSpec
+var option = struct {
+	N uint `long:me about:"Ask and you shall receive!"`
+}{
+	N: 3,
 }
-
-var removeRemote *lsf.Command
-var removeRemoteOptions *removeRemoteOptionsSpec
 
 func init() {
-
-	removeRemote = &lsf.Command{
-		Name:  removeRemoteCmdCode,
-		About: "Remove a new log remote",
-		Init:  verifyMinimalRemoteRequiredOpts,
-		Run:   runRemoveRemote,
-		Flag:  FlagSet(removeRemoteCmdCode),
-	}
-	removeRemoteOptions = &removeRemoteOptionsSpec{
-		global: NewBoolFlag(removeRemote.Flag, "G", "global", false, "global scope operation", false),
-		id:     NewStringFlag(removeRemote.Flag, "r", "remote-id", "", "unique identifier for remote port", true),
+	Command = &command.Command{
+		Name:   "give",
+		Option: &option,
+		Run:    run,
 	}
 }
 
-func runRemoveRemote(env *lsf.Environment, args ...string) (err error) {
-	panics.Recover(&err)
+func run(env *lsf.Environment) (err error) {
+	defer panics.Recover(&err)
 
-	id := *removeRemoteOptions.id.value
-	return env.RemoveRemotePort(id)
+	for n := 0; n < int(option.N); n++ {
+		log.Printf("h%c gs\n", rune('\u2661'))
+	}
+	return
 }

@@ -18,6 +18,7 @@
 package schema
 
 import (
+	"github.com/elasticsearch/kriterium/errors"
 	"time"
 )
 
@@ -71,7 +72,7 @@ func ToJournalModel(v string) journalModel {
 	case JournalModel.Rollover:
 		return JournalModel.Rollover
 	}
-	return journalModel("")
+	panic(errors.IllegalArgument("ToJournalModel", v))
 }
 
 // ----------------------------------------------------------------------

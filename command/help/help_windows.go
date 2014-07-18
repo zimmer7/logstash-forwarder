@@ -15,9 +15,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package command
+package help
 
-// package lsf/command supports the light weight command runner framework
-// of lsf.Command (see command.go) to run function in context of an lsf.Environment.
-//
-// Package further provides a suite of LSF command implementations.
+import "github.com/elasticsearch/kriterium/errors"
+
+// revu: what is equiv of man on windows?
+
+func help() (err error) {
+	return errors.NotSupported("help not supported on this platform")
+}

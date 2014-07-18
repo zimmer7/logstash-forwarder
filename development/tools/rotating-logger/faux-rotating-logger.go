@@ -78,9 +78,9 @@ func main() {
 }
 
 func writeLog(basepath, basename string, maxFileSize int64, maxfiles uint, delay_msec time.Duration, stop <-chan interface{}, wdone chan<- interface{}) {
-	defer panics.AsyncRecover(wdone, "ok")
+	defer panics.AsyncRecover(wdone)
 
-	rotator, e := lslib.NewRotatingFileWriter(basepath, basename, maxfiles, maxFileSize)
+	rotator, e := lslib.NewRotatingFileWriter(basepath, basename, uint8(maxfiles), uint64(maxFileSize))
 	panics.OnError(e, "NewFileRotator")
 
 	for {

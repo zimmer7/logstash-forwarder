@@ -15,52 +15,40 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package command
+package remote
 
 import (
 	"github.com/elasticsearch/kriterium/panics"
 	"log"
 	"lsf"
+	"lsf/command"
 	"lsf/schema"
 )
 
-const listStreamCmdCode lsf.CommandCode = "stream-list"
-
-type listStreamOptionsSpec struct {
-	global  BoolOptionSpec
-	verbose BoolOptionSpec
-}
-
-var listStream *lsf.Command
-var listStreamOptions *listStreamOptionsSpec
+var list *command.Command
+var listOption = struct {
+	Id   string `code:r long:remote-id about:"unique identifiery for the remote portal"`
+	Info bool   `code:i long:info about:"show full remote info"`
+}{}
 
 func init() {
-
-	listStream = &lsf.Command{
-		Name:  listStreamCmdCode,
-		About: "List Streams defined ",
-		Run:   runListStream,
-		Flag:  FlagSet(listStreamCmdCode),
-	}
-	listStreamOptions = &listStreamOptionsSpec{
-		global:  NewBoolFlag(listStream.Flag, "G", "global", false, "global scope flag for command", false),
-		verbose: NewBoolFlag(listStream.Flag, "v", "verbose", false, "detailed output", false),
+	list = &command.Command{
+		Name:   "list",
+		Run:    runList,
+		Option: &listOption,
 	}
 }
 
-func runListStream(env *lsf.Environment, args ...string) (err error) {
+func runList(env *lsf.Environment) (err error) {
 	defer panics.Recover(&err)
 
-	verbose := *listStreamOptions.verbose.value
-	v, found := env.Get(streamOptionVerbose)
-	if found {
-		verbose = verbose || v.(bool)
-	}
-
-	digests := env.GetResourceDigests("stream", verbose, schema.LogStreamDigest)
+	digests := env.GetResourceDigests("remote", listOption.Info, schema.PortDigest)
 	for _, digest := range digests {
 		log.Println(digest)
 	}
 
-	return nil
+	if list.Verbose() && len(digests) == 0 {
+		log.Printf("There are no remote portals defined in %s\n", list.Wd())
+	}
+	return
 }

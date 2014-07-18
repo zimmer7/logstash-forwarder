@@ -136,7 +136,7 @@ func NewLocalPort(path string) (*Port, error) {
 	return port, nil
 }
 
-func NewRemotePort(id, host string, portno int) (*Port, error) {
+func NewRemotePort(id, host string, portno uint16) (*Port, error) {
 	portnumStr := fmt.Sprintf("%d", portno)
 	path := fmt.Sprintf("%s:%s", host, portnumStr)
 	address, e := url.Parse(path)

@@ -17,11 +17,12 @@
 
 package system
 
-// registrar.go: implementation of lsf/system.Registrar
-
 import (
 	"fmt"
-	"lsf/system/process"
+	"github.com/elasticsearch/kriterium/component/process"
+	"github.com/elasticsearch/kriterium/errors"
+	"github.com/elasticsearch/kriterium/panics"
+	"os"
 )
 
 func StartRegistry(basepath string) (Registrar, error) {
@@ -29,30 +30,9 @@ func StartRegistry(basepath string) (Registrar, error) {
 	if e != nil {
 		return nil, e
 	}
-	// start the registrar active component
 	go registrar.run()
 
 	return registrar, nil
-}
-
-// Launches a goroutine to process user requests affecting
-// shared system resources managed by system, per semantics of system.Registrar.
-func (r *registrar) run() {
-	defer func() {
-		// REVU: request.execute() returns errors via channels
-		//       and wraps calls to lsf/lsfun functions (which
-		//       are not to panic(?)). << TODO: affirm
-	}()
-
-	for {
-		select {
-		case request := <-r.ui:
-			request.result <- request.execute()
-		case <-r.Command():
-			r.Report() <- stat{nil, NilValue}
-			return
-		}
-	}
 }
 
 // ----------------------------------------------------------------------------
@@ -62,9 +42,11 @@ func (r *registrar) run() {
 // registrar implements system doc registrar functionality and supports the
 // lsf/system.Registrar interface.
 type registrar struct {
-	*process.Control
-	reg *registry
-	ui  chan req
+	controller process.Controller // active-command controller
+	process    process.Process    // active-command process
+	sighandler process.Process
+	reg        *registry
+	ui         chan req
 }
 
 func newRegistrar(basepath string) (*registrar, error) {
@@ -73,17 +55,54 @@ func newRegistrar(basepath string) (*registrar, error) {
 		return nil, e
 	}
 
+	cnc := process.NewCmdCtl()
+	sigHandler := cnc.CommandOnSignal(process.Stop, os.Interrupt, os.Kill)
+
 	regisrar := &registrar{
-		process.NewProcessControl(),
+		cnc.Controller(),
+		cnc.Process(),
+		sigHandler,
 		registry,
 		make(chan req, 12),
 	}
 	return regisrar, nil
 }
 
+// Launches a go-routine to process user requests affecting
+// shared system resources managed by system, per semantics of system.Registrar.
+func (r *registrar) run() {
+	defer panics.AsyncRecover(r.controller.Respond())
+
+	for {
+		select {
+		case request := <-r.ui:
+			request.result <- request.execute()
+		case cmd := <-r.controller.Command():
+			var cmdresp process.CommandCode
+			switch cmd {
+			case process.Stop: // expected
+				cmdresp = process.Stop
+			default: // unexpected cmd.
+				cmdresp = process.Abort
+			}
+			r.sighandler.Signal() <- process.Stop
+			r.controller.Respond() <- cmdresp
+			return
+		}
+	}
+}
+
 // ----------------------------------------------------------------------------
 // interface: Registrar
 // ----------------------------------------------------------------------------
+
+func (r *registrar) Stop() (err error) {
+	r.process.Signal() <- process.Stop
+	if resp := <-r.process.Response(); resp != process.Stop {
+		return errors.IllegalState("registrar.Stop:", "unexpected response:", resp)
+	}
+	return
+}
 
 func (r *registrar) String() string {
 	s := fmt.Sprintf("registrar: path %s", r.reg.path)

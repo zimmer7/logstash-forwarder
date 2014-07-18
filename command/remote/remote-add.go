@@ -15,26 +15,37 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package command
+package remote
 
 import (
+	"github.com/elasticsearch/kriterium/panics"
+	"log"
 	"lsf"
+	"lsf/command"
 )
 
-// REVU: ALL can be env methods TODO
+var add *command.Command
 
-// assert resource does not exist
-func _assertNotExists(env *lsf.Environment, docId string) {
-	doc, e := env.LoadDocument(docId)
-	if e == nil && doc != nil {
-		panic(lsf.ERR.ResourceExists("docId:", docId))
+func init() {
+	add = &command.Command{
+		Name:   "add",
+		Run:    runAdd,
+		Option: &option,
 	}
 }
 
-// assert resource does not exist
-func _assertExists(env *lsf.Environment, docId string) {
-	doc, e := env.LoadDocument(docId)
-	if e != nil || doc == nil {
-		panic(lsf.ERR.ResourceDoesNotExist("docId:", docId))
+func runAdd(env *lsf.Environment) (err error) {
+	panics.Recover(&err)
+
+	command.AssertStringProvided("remote-id", option.Id, "")
+	command.AssertStringProvided("host-name", option.Host, "")
+	command.AssertUint16Provided("port-num", option.Port, 0)
+
+	if e := env.AddRemotePort(option.Id, option.Host, option.Port); e != nil {
+		return e
 	}
+	if add.Verbose() {
+		log.Printf("Added remote portal %q\n", option.Id)
+	}
+	return
 }

@@ -15,37 +15,37 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package command
+package stream
 
 import (
+	"github.com/elasticsearch/kriterium/panics"
+	"log"
 	"lsf"
+	"lsf/command"
 )
 
-const cmd_help lsf.CommandCode = "help"
-
-var Help *lsf.Command
-var helpOptions *helpOptionsSpec
-
-type helpOptionsSpec struct {
-	command StringOptionSpec
-}
+var remove *command.Command
+var removeOption = struct {
+	Id string `code:s long:stream-id about:"stream id"`
+}{}
 
 func init() {
-
-	Help = &lsf.Command{
-		Name:  cmd_help,
-		About: "Provides usage information for LS/F commands",
-		Run:   runHelp,
-		Flag:  FlagSet(cmd_help),
-		Usage: "help <command>",
+	remove = &command.Command{
+		Name:   "remove",
+		Run:    runRemove,
+		Option: &removeOption,
 	}
-
-	helpOptions = &helpOptionsSpec{
-		command: NewStringOptionSpec("c", "command", "", "the command you need help with", true),
-	}
-	helpOptions.command.defineFlag(Help.Flag)
 }
 
-func runHelp(env *lsf.Environment, args ...string) error {
-	panic("command.help() not impelemented!")
+func runRemove(env *lsf.Environment) (err error) {
+	panics.Recover(&err)
+
+	command.AssertStringProvided("stream-id", removeOption.Id, "")
+	if e := env.RemoveLogStream(removeOption.Id); e != nil {
+		return e
+	}
+	if remove.Verbose() {
+		log.Printf("Removed stream %q\n", removeOption.Id)
+	}
+	return
 }

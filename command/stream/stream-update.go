@@ -15,39 +15,47 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package command
+package stream
 
 import (
-	"github.com/elasticsearch/kriterium/flags"
 	"github.com/elasticsearch/kriterium/panics"
+	"log"
 	"lsf"
+	"lsf/command"
+	"lsf/schema"
 )
 
-const removeStreamCmdCode lsf.CommandCode = "stream-remove"
-
-var removeStream *lsf.Command
-var removeStreamOption *flags.StringOption
+var update *command.Command
 
 func init() {
-
-	flagset := FlagSet(removeStreamCmdCode)
-	removeStream = &lsf.Command{
-		Name:  removeStreamCmdCode,
-		About: "Remove a new log stream",
-		Init:  initRemoveStream,
-		Run:   runRemoveStream,
-		Flag:  flagset,
+	update = &command.Command{
+		Name:   "update",
+		Run:    runUpdate,
+		Option: &option,
 	}
-	removeStreamOption = flags.NewStringOption(flagset, "s", "stream-id", "", "unique identifier for stream", true)
 }
 
-func initRemoveStream(env *lsf.Environment, args ...string) (err error) {
-	return flags.VerifyRequiredOption(removeStreamOption)
-}
-
-func runRemoveStream(env *lsf.Environment, args ...string) (err error) {
+func runUpdate(env *lsf.Environment) (err error) {
 	panics.Recover(&err)
 
-	id := removeStreamOption.Get()
-	return env.RemoveLogStream(id)
+	command.AssertStringProvided("stream-id", option.Id, "")
+
+	updates := make(map[string][]byte)
+	if option.Path != "" {
+		updates[schema.LogStreamElem.BasePath] = []byte(option.Path)
+	}
+	if option.Pattern != "" {
+		updates[schema.LogStreamElem.Pattern] = []byte(option.Pattern)
+	}
+	if option.Model != "" {
+		updates[schema.LogStreamElem.JournalModel] = []byte(option.Model)
+	}
+
+	if e := env.UpdateLogStream(option.Id, updates); e != nil {
+		return e
+	}
+	if update.Verbose() {
+		log.Printf("Updated stream %s\n", option.Id)
+	}
+	return
 }

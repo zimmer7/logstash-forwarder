@@ -25,39 +25,21 @@ import (
 // error codes
 // ----------------------------------------------------------------------------
 
-var ERR = struct {
-	Error,
-	Assertion,
-	Usage,
-	RequiredFlag,
-	IllegalArgument,
-	IllegalState,
-	NotSupported,
-	NotImplemented,
-	ConcurrentAccess,
-	ConcurrentOperation,
-	LsfOpFailure,
-	LsfEnvironmentExists,
-	LsfEnvironmentDoesNotExist,
+// REVU: All these can be either generic IllegalState or Fatal error types.
+// TODO: remove these
+var LsfError = struct {
+	OpFailure,
+	EnvironmentExists,
+	EnvironmentDoesNotExist,
 	ResourceExists,
 	ResourceDoesNotExist,
 	_stub errors.TypedError
 }{
-	Error:                      errors.Error,
-	Assertion:                  errors.Assertion,
-	Usage:                      errors.Usage,
-	RequiredFlag:               errors.RequiredFlag,
-	IllegalArgument:            errors.IllegalArgument,
-	IllegalState:               errors.IllegalState,
-	NotSupported:               errors.NotSupported,
-	NotImplemented:             errors.NotImplemented,
-	ConcurrentAccess:           errors.ConcurrentAccess,
-	ConcurrentOperation:        errors.ConcurrentOperation,
-	LsfOpFailure:               errors.New("lsf operation failed"),
-	LsfEnvironmentExists:       errors.New("lsf environment already exists"),
-	LsfEnvironmentDoesNotExist: errors.New("lsf environment does not exists at location"),
-	ResourceExists:             errors.New("lsf resource already exists"),
-	ResourceDoesNotExist:       errors.New("lsf resource does not exist"),
+	OpFailure:               errors.New("lsf operation failed"),
+	EnvironmentExists:       errors.New("lsf environment already exists"),
+	EnvironmentDoesNotExist: errors.New("lsf environment does not exists at location"),
+	ResourceExists:          errors.New("lsf resource already exists"),
+	ResourceDoesNotExist:    errors.New("lsf resource does not exist"),
 }
 
 var WARN = struct {

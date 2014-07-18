@@ -15,6 +15,27 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// Package lsf/test provides testing utility and helper functions.
-// TODO: move to kriterium
-package test
+package help
+
+import (
+	"lsf"
+	"lsf/command"
+)
+
+var Command *command.Command
+
+var option = struct {
+	WhatIs bool `code:f long:whatis about:"similar to man -f, just emit the whatis info about the command"`
+}{}
+
+func init() {
+	Command = &command.Command{
+		Name:   "help",
+		Option: &option,
+		Run:    run,
+	}
+}
+
+func run(env *lsf.Environment) (err error) {
+	return help()
+}

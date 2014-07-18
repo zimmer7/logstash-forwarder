@@ -15,21 +15,40 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package process
+package stream
 
 import (
-	"lsf/test"
-	"testing"
+	"github.com/elasticsearch/kriterium/panics"
+	"log"
+	"lsf"
+	"lsf/command"
 )
 
-// this is the only meaningful whitebox test we can do.
-func TestConstruct(t *testing.T) {
-	assert := test.GetAssertionFor(t, "TestConstruct")
+var add *command.Command
 
-	// never return nil
-	control := NewProcessControl()
-	assert.NotNil("control", control)
+func init() {
+	add = &command.Command{
+		Name:   "add",
+		Run:    runAdd,
+		Option: &option,
+	}
+}
 
-	// supervisor input is process output
+func runAdd(env *lsf.Environment) (err error) {
+	panics.Recover(&err)
 
+	command.AssertStringProvided("stream-id", option.Id, "")
+	command.AssertStringProvided("path", option.Path, "")
+	command.AssertStringProvided("pattern", option.Pattern, "")
+	command.AssertStringProvided("rotation-model", option.Model, "")
+
+	fields := make(map[string]string) // TODO: fields needs a solution
+	e := env.AddLogStream(option.Id, option.Pattern, option.Pattern, option.Model, fields)
+	if e != nil {
+		return e
+	}
+	if add.Verbose() {
+		log.Printf("Added stream %q\n", option.Id)
+	}
+	return
 }

@@ -15,38 +15,48 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package command
+package remote
 
 import (
-	"github.com/elasticsearch/kriterium/errors"
-	"github.com/elasticsearch/kriterium/flags"
+	"fmt"
+	"github.com/elasticsearch/kriterium/panics"
+	"log"
 	"lsf"
+	"lsf/command"
+	"lsf/schema"
 )
 
-const cmd_debug lsf.CommandCode = "debug"
-
-var Debug *lsf.Command
-var debugOption *flags.StringOption
+var update *command.Command
 
 func init() {
-
-	flagset := FlagSet(cmd_debug)
-	Debug = &lsf.Command{
-		Name:  cmd_debug,
-		About: "Provides usage information for LS/F commands",
-		Init:  initDebug,
-		Run:   runDebug,
-		Flag:  flagset,
-		Usage: "debug <command>",
+	update = &command.Command{
+		Name:   "update",
+		Run:    runUpdate,
+		Option: &option,
 	}
-	debugOption = flags.NewStringOption(flagset, "c", "command", "", "the command to debug", true)
 }
 
-func initDebug(env *lsf.Environment, args ...string) error {
-	return flags.VerifyRequiredOption(debugOption)
-}
+func runUpdate(env *lsf.Environment) (err error) {
+	panics.Recover(&err)
 
-func runDebug(env *lsf.Environment, args ...string) error {
-	//	_ = debugOption.Get()
-	return errors.NotImplemented("command:", cmd_debug)
+	command.AssertStringProvided("remote-id", option.Id, "")
+
+	updates := make(map[string][]byte)
+	if option.Id != "" {
+		updates[schema.PortElem.Id] = []byte(option.Id)
+	}
+	if option.Host != "" {
+		updates[schema.PortElem.Host] = []byte(option.Host)
+	}
+	if option.Port != uint16(0) {
+		updates[schema.PortElem.PortNum] = []byte(fmt.Sprintf("%d", option.Port))
+	}
+
+	if e := env.UpdateRemotePort(option.Id, updates); e != nil {
+		return e
+	}
+	if update.Verbose() {
+		log.Printf("Updated remote portal %q\n", option.Id)
+	}
+	return
 }

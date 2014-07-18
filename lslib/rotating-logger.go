@@ -41,6 +41,7 @@ type RotatingFileWriter interface {
 	Close()
 	// Calls Close() if notified of any of the
 	// following os.Signals. Should be invoked only once.
+	// REVU: deprecated - see func for details
 	CloseOnSignal(signals ...os.Signal)
 }
 
@@ -61,13 +62,13 @@ type rotatingFileWriter struct {
 // max size: 16777216 bytes
 // See NewRotatingFileWriter for additional details
 func GetFileRotatorWithDefaults(basepath, basename string) (r RotatingFileWriter, err error) {
-	return NewRotatingFileWriter(basepath, basename, uint(16), int64(1<<24))
+	return NewRotatingFileWriter(basepath, basename, uint8(16), uint64(1<<24))
 }
 
 // Returns a new RotatingFileWiter.
 // Files are closed on rotation. Active file will close on os.Interrupt | os.Kill.
 // This implementation of RotatingFileWriter does not support concurrent client.
-func NewRotatingFileWriter(basepath, basename string, maxseq uint, maxFileSize int64) (rotator *rotatingFileWriter, err error) {
+func NewRotatingFileWriter(basepath, basename string, maxseq uint8, maxFileSize uint64) (rotator *rotatingFileWriter, err error) {
 
 	defer panics.Recover(&err)
 
@@ -83,7 +84,7 @@ func NewRotatingFileWriter(basepath, basename string, maxseq uint, maxFileSize i
 	//	filepath := path.Join(basepath, file.Name())
 	offset, _ := file.Seek(0, os.SEEK_END)
 	//	rotator = &rotatingFileWriter{basepath, filepath, file, 0, maxseq, maxFileSize, offset, false}
-	rotator = &rotatingFileWriter{basepath, basename, file, 0, maxseq, maxFileSize, offset, false}
+	rotator = &rotatingFileWriter{basepath, basename, file, 0, uint(maxseq), int64(maxFileSize), offset, false}
 
 	e = rotator.rotateOnLimit()
 	panics.OnError(e, "NewFileRotator", "rotateOnLimit:")
@@ -110,13 +111,22 @@ func (r *rotatingFileWriter) Write(p []byte) (n int, err error) {
 	return
 }
 func (r *rotatingFileWriter) Close() {
+	defer func() {
+		println("DEBUG")
+		p := recover()
+		println(p)
+	}()
+	println("DEBUG: closing rorator file")
 	if r.closed {
+		println("DEBUG: closing rorator file - ALREADY CLOSED")
 		return
 	}
 	r.file.Close()
+	println("DEBUG: closing rorator file - CLOSED")
 	r.closed = true
 }
 
+// REVU: use Kriterium Signal Handler here.
 func (r *rotatingFileWriter) CloseOnSignal(signals ...os.Signal) {
 	osSignal := make(chan os.Signal, 1)
 	signal.Notify(osSignal, signals...)
